@@ -8,6 +8,6 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
-# Install Python dependencies so kairos_verifier.py runs in the session.
-# numpy + scipy are the only runtime deps (see CLAUDE.md §9).
-python3 -m pip install --quiet numpy scipy
+# Install Python dependencies so the kairos modules and tests run in the session.
+# numpy + scipy are runtime deps (see CLAUDE.md §9); pytest runs the test suite.
+python3 -m pip install --quiet numpy scipy pytest

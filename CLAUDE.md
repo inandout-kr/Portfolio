@@ -3,7 +3,7 @@
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.
 
-- **첫 작업**: 아래 §11 미확정 결정 3개를 사용자에게 확인 → 확정되면 §10 로드맵 2번부터 진행.
+- **다음 작업**: §11 의 3개 결정은 모두 확정됨(아래 참조). §10 로드맵에서 다음 미완료 항목(현재 **3번 PIT 데이터 레이어**)을 진행한다.
 - 이 문서는 자기완결적이다. 이전 대화 기록 없이도 전체 맥락을 담고 있다.
 
 ## 1. 프로젝트 목표
@@ -74,13 +74,22 @@
 
 > ※ 편향 방향: 롱/역추세/밸류/저가주/디스트레스드는 위로, 숏은 아래로 편향됨.
 
-## 9. 현재 상태 — `kairos_verifier.py` (작동 확인 완료)
-검증기 코어 첫 모듈. 사용자 백테스트 엔진에 그대로 얹는 형태.
+## 9. 현재 상태 (작동 확인 완료)
+사용자 백테스트 엔진에 그대로 얹는 형태. 의존성: numpy, scipy (테스트: pytest).
 
-### 구성
+### `kairos_verifier.py` — 검증기 코어
 - **`KoreanCostModel`** — 한국 비용/슬리피지. 메서드: `one_way_bps(side, instrument, participation, sigma_bps)`, `round_trip_bps(...)`, `slippage_bps(...)`. 기본값: 선물수수료 1bp, 현물수수료 3bp, 현물매도거래세 20bp, half_spread 2bp, 제곱근충격계수 0.8.
 - **과최적화 가드**: `sharpe`, `probabilistic_sharpe_ratio(returns, sr_benchmark)`, `expected_max_sharpe(n_trials, sr_variance)`, `deflated_sharpe_ratio(returns, n_trials, sr_variance)`, `pbo_cscv(returns_matrix, n_splits)`.
-- **실행**: `python3 kairos_verifier.py` (의존성: numpy, scipy)
+- **실행**: `python3 kairos_verifier.py`
+
+### `kairos_simulator.py` — 현실화 시뮬레이터
+- **타입**: `Bar`(OHLCV+거래대금, `halted`, `limit_up/down`), `Order`(side/instrument/shares/is_short), `Fill`, `ExecutionReport`(`filled/remaining_shares`, `avg_fill_price`, `slippage_bps` = implementation shortfall, `total_cost_krw`).
+- **`RealizationSimulator.execute(order, future_bars, prev_close=None)`** — 다음 바부터 체결. 바당 `max_participation`(기본 10%)까지만 먹고 나머지 이월(캐퍼시티). 가격제한 잠김/정지(halt) 바 스킵, 공매도 차입 불가 시 기각. 비용은 `KoreanCostModel` 위임.
+- **`capacity_analysis(adv_krw, target_notional, max_daily_participation)`** → `CapacityReport`(소화 일수/당일가능 여부).
+- **실행**: `python3 kairos_simulator.py`
+
+### 테스트
+- `tests/` — `test_verifier.py`, `test_simulator.py`. **실행: `python3 -m pytest -q` (현재 26 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -101,18 +110,18 @@
 
 ## 10. 빌드 로드맵 (우선순위 순)
 1. ✅ 검증기 코어 (비용모델 + 과최적화 가드) — `kairos_verifier.py` 완료
-2. ⬜ 현실화 시뮬레이터 ③ — 1분봉에 맞춘 체결모델(다음 바), 참여율/ADV 기반 슬리피지, 캐퍼시티 분석, 공매도 차입제약, 가격제한/서킷/VI 처리
-3. ⬜ PIT 데이터 레이어 — 현재 유니버스 + DART 상폐 전향 수집, as-of 조인, 같은 바 누수 방지
+2. ✅ 현실화 시뮬레이터 ③ — `kairos_simulator.py` 완료. 다음 바 체결, 참여율 기반 슬리피지(비용은 `KoreanCostModel` 위임), 캐퍼시티 이월/분석, 공매도 차입제약, 가격제한(±30%)/서킷·VI 정지 처리
+3. ⬜ PIT 데이터 레이어 — 현재 유니버스 + DART 상폐 전향 수집, as-of 조인, 같은 바 누수 방지 **(다음 작업)**
 4. ⬜ Kairos 임베디드 DSL — 단위 타입, 인과적 Series(룩어헤드 차단), 반응형 블록 (기존 엔진 위)
 5. ⬜ 생성기 — thesis 동반 가설 제안(LLM/GP), 경제적 근거 강제
 6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트
 7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백
 8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개
 
-## 11. 미확정 결정 3개 (사용자 확인 필요)
-1. **3bp 가 수수료 편도(거래세 별도) 맞나?** → 맞으면 모델 기본값(매도 20bp 자동 가산) 유지.
-2. **시작 유니버스**: 코스피200급 유동주 제한(생존편향↓, 추천) vs 전체 상장(기회↑·편향↑).
-3. **Kairos 구현 방식**: Python 임베디드 DSL(추천) vs 트랜스파일러.
+## 11. 확정된 결정 3개 (2026-06 확정)
+1. ✅ **3bp = 수수료 편도(거래세 별도)** → `KoreanCostModel` 기본값(매도 거래세 20bp 자동 가산) 유지.
+2. ✅ **시작 유니버스 = 코스피200급 유동주 제한** (생존편향↓). 시뮬레이터 기본값 `borrowable_short=True` 도 이 가정과 정합.
+3. ✅ **Kairos 구현 = Python 임베디드 DSL** (데코레이터/연산자 오버로딩 + 기존 백테스트 엔진 위). 트랜스파일러 아님.
 
 ## 12. 참고문헌
 - Bailey & López de Prado (2012/2014): Probabilistic / Deflated Sharpe Ratio
