@@ -113,8 +113,13 @@
 - **`evaluate_strategy(returns, ledger, regimes=None, thresholds=GateThresholds(), n_folds)`** → `Verdict`. 시도를 원장에 기록 후 그 N으로 DSR 계산 → DSR/안정성/레짐 게이트. **`backtest_overfit_prob`** = PBO 래퍼.
 - **실행**: `python3 kairos_harness.py`
 
+### `kairos_promotion.py` — 승격 파이프라인
+- **`PromotionPipeline`** — `admit(sid, backtest_passed, backtest_sharpe)`(통과분만 PAPER, 아니면 RETIRED), `record_paper/forward/live`, `human_approve(sid, approver)`, `try_promote(sid)`(한 단계씩), `live_divergence(sid)`.
+- **단계**: BACKTEST→PAPER→FORWARD→(휴먼 게이트)→LIVE / RETIRED. 포워드 우선·알파 감쇠(`max_decay_ratio`) 거부, **휴먼 미승인시 LIVE 자동승격 불가**(§2). `PromotionPolicy`로 임계 조정.
+- **실행**: `python3 kairos_promotion.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`, `test_harness.py`. **실행: `python3 -m pytest -q` (현재 94 passed).**
+- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`, `test_harness.py`, `test_promotion.py`. **실행: `python3 -m pytest -q` (현재 107 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -140,8 +145,8 @@
 4. ✅ Kairos 임베디드 DSL — `kairos_dsl.py` 완료. 차원·통화 타입(Price/Shares/Notional), 인과적 Series(미래/자유인덱싱 차단), 반응형 블록(run_reactive).
 5. ✅ 생성기 — `kairos_generator.py` 완료. Thesis 강제(없으면 생성 불가), GP(트리/mutate/crossover, 프리미티브가 경제 카테고리 보유→thesis 자동유도), provider-agnostic LLMProposer. (risk_premium 은 펀더멘털 미연동이라 현 프리미티브엔 없음)
 6. ✅ 통계 검증 하니스 — `kairos_harness.py` 완료. `TrialLedger`(영구 시도원장→DSR의 N), 워크포워드 안정성, 레짐 강건성, `evaluate_strategy` 종합 게이트, PBO 래퍼.
-7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백 **(다음 작업)**
-8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개
+7. ✅ 승격 게이트 + 페이퍼 + 라이브 피드백 — `kairos_promotion.py` 완료. BACKTEST→PAPER→FORWARD→(휴먼 게이트)→LIVE 상태머신, 알파 감쇠 거부, 휴먼 미승인시 LIVE 자동승격 불가, 라이브 괴리 경보.
+8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개 **(다음 작업)**
 
 ## 11. 확정된 결정 3개 (2026-06 확정)
 1. ✅ **3bp = 수수료 편도(거래세 별도)** → `KoreanCostModel` 기본값(매도 거래세 20bp 자동 가산) 유지.
