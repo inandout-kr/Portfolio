@@ -3,7 +3,7 @@
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.
 
-- **다음 작업**: §11 의 3개 결정은 모두 확정됨(아래 참조). §10 로드맵에서 다음 미완료 항목(현재 **3번 PIT 데이터 레이어**)을 진행한다.
+- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8번 전부 완료**(8개 모듈 + 120 테스트 통과). 다음은 *통합/실데이터 연동* 단계 — 8개 모듈을 하나의 발굴 루프로 엮고(생성기→DSL→시뮬레이터→PIT→하니스→승격→supervisor), 라이브 가정으로 남겨둔 실데이터 소스(시세/펀더멘털/DART 상폐, LLM 제공자)를 연결한다. 이들은 사용자 결정이 필요하므로 진행 전 확인할 것.
 - 이 문서는 자기완결적이다. 이전 대화 기록 없이도 전체 맥락을 담고 있다.
 
 ## 1. 프로젝트 목표
@@ -118,8 +118,13 @@
 - **단계**: BACKTEST→PAPER→FORWARD→(휴먼 게이트)→LIVE / RETIRED. 포워드 우선·알파 감쇠(`max_decay_ratio`) 거부, **휴먼 미승인시 LIVE 자동승격 불가**(§2). `PromotionPolicy`로 임계 조정.
 - **실행**: `python3 kairos_promotion.py`
 
+### `kairos_supervisor.py` — 바깥쪽 supervisor 루프
+- **`Supervisor.treat(FailureEvent)`** → `Treatment(action, reason, resumes_discovery)`. 유형: DATA→클리닝재개, LIQUIDITY→재파라미터화(반복시 폐기), OVERFIT→폐기(반복시 가드강화), LIVE_DIVERGENCE→하위원인(regime/cost_model/alpha_decay)별 재캘리브/은퇴.
+- **`FailureLog(path)`** — 실패 이벤트 영구화(`.kairos/`, gitignore), `count`/`mode_counts`로 반복 모드 학습→처치 격상(세션 넘어 누적). **`Supervisor.diagnose_divergence(detail)`** 휴리스틱 진단.
+- **실행**: `python3 kairos_supervisor.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`, `test_harness.py`, `test_promotion.py`. **실행: `python3 -m pytest -q` (현재 107 passed).**
+- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor. **실행: `python3 -m pytest -q` (현재 120 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -146,7 +151,7 @@
 5. ✅ 생성기 — `kairos_generator.py` 완료. Thesis 강제(없으면 생성 불가), GP(트리/mutate/crossover, 프리미티브가 경제 카테고리 보유→thesis 자동유도), provider-agnostic LLMProposer. (risk_premium 은 펀더멘털 미연동이라 현 프리미티브엔 없음)
 6. ✅ 통계 검증 하니스 — `kairos_harness.py` 완료. `TrialLedger`(영구 시도원장→DSR의 N), 워크포워드 안정성, 레짐 강건성, `evaluate_strategy` 종합 게이트, PBO 래퍼.
 7. ✅ 승격 게이트 + 페이퍼 + 라이브 피드백 — `kairos_promotion.py` 완료. BACKTEST→PAPER→FORWARD→(휴먼 게이트)→LIVE 상태머신, 알파 감쇠 거부, 휴먼 미승인시 LIVE 자동승격 불가, 라이브 괴리 경보.
-8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개 **(다음 작업)**
+8. ✅ 바깥쪽 supervisor 루프 — `kairos_supervisor.py` 완료. 실패 분류(DATA/LIQUIDITY/OVERFIT/LIVE_DIVERGENCE), 처치 정책(클리닝재개/재파라미터화→폐기/폐기→가드강화/진단→재캘리브·은퇴), 영구 실패로그(반복모드 학습→격상).
 
 ## 11. 확정된 결정 3개 (2026-06 확정)
 1. ✅ **3bp = 수수료 편도(거래세 별도)** → `KoreanCostModel` 기본값(매도 거래세 20bp 자동 가산) 유지.
