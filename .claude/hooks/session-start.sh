@@ -9,5 +9,6 @@ fi
 cd "$CLAUDE_PROJECT_DIR"
 
 # Install Python dependencies so the kairos modules and tests run in the session.
-# numpy + scipy are runtime deps (see CLAUDE.md §9); pytest runs the test suite.
-python3 -m pip install --quiet numpy scipy pytest
+# numpy + scipy: runtime deps (CLAUDE.md §9); anthropic: LLM adapter (kairos_llm);
+# pytest: test suite.
+python3 -m pip install --quiet numpy scipy anthropic pytest
