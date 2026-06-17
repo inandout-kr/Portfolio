@@ -101,8 +101,14 @@
 - **`run_reactive(series, on_bar)`** — 모든 시계열을 같은 t로 흘리며 `on_bar(Context)` 호출, 반환 시그널을 `(t, value)`로 수집. 핸들러는 인과적 접근만 가능.
 - **실행**: `python3 kairos_dsl.py`
 
+### `kairos_generator.py` — 생성기
+- **`Thesis(category, rationale)`** — 카테고리는 `CATEGORIES`(risk_premium/behavioral/microstructure/supply_demand), 빈 근거는 예외. **`Candidate`는 `Thesis` 없이는 생성 불가** = 경제적 근거 강제.
+- **프리미티브**: `mom/rev`(behavioral), `breakout`(microstructure), `volsurge`(supply_demand) × {1,5,20}. `Node` 트리 + `FUNCTIONS`(add/sub/neg). `derive_thesis(tree)`가 말단 카테고리에서 thesis 유도.
+- **`GeneticGenerator`** — `generate(n)`, `mutate`, `crossover`(시드 결정적). **`LLMProposer(llm_fn)`** — provider-agnostic, LLM이 (카테고리|근거)를 주면 템플릿으로 Candidate화.
+- **실행**: `python3 kairos_generator.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`. **실행: `python3 -m pytest -q` (현재 61 passed).**
+- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`. **실행: `python3 -m pytest -q` (현재 79 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -126,8 +132,8 @@
 2. ✅ 현실화 시뮬레이터 ③ — `kairos_simulator.py` 완료. 다음 바 체결, 참여율 기반 슬리피지(비용은 `KoreanCostModel` 위임), 캐퍼시티 이월/분석, 공매도 차입제약, 가격제한(±30%)/서킷·VI 정지 처리
 3. ✅ PIT 데이터 레이어 — `kairos_pit.py` 완료. as-of 유니버스(생존편향 차단), 상폐 전향 수집(coverage_start), as-of 조인(strict=같은 바 누수 차단), same-bar leak 가드. (라이브 데이터 소스 미연동 — 인메모리 인터페이스/로직 우선)
 4. ✅ Kairos 임베디드 DSL — `kairos_dsl.py` 완료. 차원·통화 타입(Price/Shares/Notional), 인과적 Series(미래/자유인덱싱 차단), 반응형 블록(run_reactive).
-5. ⬜ 생성기 — thesis 동반 가설 제안(LLM/GP), 경제적 근거 강제 **(다음 작업)**
-6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트
+5. ✅ 생성기 — `kairos_generator.py` 완료. Thesis 강제(없으면 생성 불가), GP(트리/mutate/crossover, 프리미티브가 경제 카테고리 보유→thesis 자동유도), provider-agnostic LLMProposer. (risk_premium 은 펀더멘털 미연동이라 현 프리미티브엔 없음)
+6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트 **(다음 작업)**
 7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백
 8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개
 
