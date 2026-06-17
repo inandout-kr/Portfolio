@@ -95,8 +95,14 @@
 - **라이브 가정**: 실제 시세/펀더멘털/DART 상폐 소스는 미연동. 인메모리 인터페이스로 PIT 로직 확정.
 - **실행**: `python3 kairos_pit.py`
 
+### `kairos_dsl.py` — 임베디드 DSL
+- **차원·통화 타입**: `Price(value, ccy)`, `Shares(value)`, `Notional(value, ccy)`. `Price*Shares→Notional`, `Notional/Price→Shares`, `Notional/Shares→Price`. 통화 불일치 덧셈/나눗셈은 `TypeError`.
+- **`CausalSeries`** — `now()`, `ago(k)`(k≥0, 음수면 `LookAheadError`), `window(n)`, `seek/advance`. 자유 인덱싱(`__getitem__`)은 막힘 → 룩어헤드 구조적 차단.
+- **`run_reactive(series, on_bar)`** — 모든 시계열을 같은 t로 흘리며 `on_bar(Context)` 호출, 반환 시그널을 `(t, value)`로 수집. 핸들러는 인과적 접근만 가능.
+- **실행**: `python3 kairos_dsl.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`. **실행: `python3 -m pytest -q` (현재 40 passed).**
+- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`. **실행: `python3 -m pytest -q` (현재 61 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -119,8 +125,8 @@
 1. ✅ 검증기 코어 (비용모델 + 과최적화 가드) — `kairos_verifier.py` 완료
 2. ✅ 현실화 시뮬레이터 ③ — `kairos_simulator.py` 완료. 다음 바 체결, 참여율 기반 슬리피지(비용은 `KoreanCostModel` 위임), 캐퍼시티 이월/분석, 공매도 차입제약, 가격제한(±30%)/서킷·VI 정지 처리
 3. ✅ PIT 데이터 레이어 — `kairos_pit.py` 완료. as-of 유니버스(생존편향 차단), 상폐 전향 수집(coverage_start), as-of 조인(strict=같은 바 누수 차단), same-bar leak 가드. (라이브 데이터 소스 미연동 — 인메모리 인터페이스/로직 우선)
-4. ⬜ Kairos 임베디드 DSL — 단위 타입, 인과적 Series(룩어헤드 차단), 반응형 블록 (기존 엔진 위) **(다음 작업)**
-5. ⬜ 생성기 — thesis 동반 가설 제안(LLM/GP), 경제적 근거 강제
+4. ✅ Kairos 임베디드 DSL — `kairos_dsl.py` 완료. 차원·통화 타입(Price/Shares/Notional), 인과적 Series(미래/자유인덱싱 차단), 반응형 블록(run_reactive).
+5. ⬜ 생성기 — thesis 동반 가설 제안(LLM/GP), 경제적 근거 강제 **(다음 작업)**
 6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트
 7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백
 8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개
