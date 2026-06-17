@@ -1,0 +1,36 @@
+# hello.ka — Kairos 언어 맛보기 (v0)
+# 실행: python3 -m kairoslang run examples/hello.ka
+
+print "안녕, Kairos"
+
+# --- 차원·통화 타입 (알고트레이딩 특화의 첫 기둥) ---
+let price: Price<KRW> = KRW 70000      # 삼성전자 한 주 가격
+let qty: Shares = 50 shares
+let cost: Notional<KRW> = price * qty   # Price * Shares -> Notional
+print cost                              # 3,500,000 KRW (notional)
+
+# 금액 / 가격 = 수량 (Notional / Price -> Shares)
+print cost / price                     # 50 shares (qty 복원)
+
+# --- 함수 ---
+fn pnl(entry, exit, qty) {
+    return (exit - entry) * qty
+}
+print pnl(KRW 70000, KRW 73000, 50 shares)   # 150,000 KRW 손익
+
+# --- 제어 흐름 ---
+let ret = 0.043
+if ret > 0.0 {
+    print "상승: 진입 검토"
+} else {
+    print "하락: 관망"
+}
+
+# --- 반복 ---
+let i = 0
+let total = KRW 0
+while i < 3 {
+    total = total + KRW 1000
+    i = i + 1
+}
+print total                            # 3,000 KRW
