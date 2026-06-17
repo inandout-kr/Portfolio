@@ -8,6 +8,6 @@ fi
 
 cd "$CLAUDE_PROJECT_DIR"
 
-# Install npm dependencies so tests, linters and typechecks work in the session.
-# `npm install` (not `npm ci`) so the cached container state can be reused.
-npm install
+# Install Python dependencies so kairos_verifier.py runs in the session.
+# numpy + scipy are the only runtime deps (see CLAUDE.md §9).
+python3 -m pip install --quiet numpy scipy
