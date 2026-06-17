@@ -3,7 +3,8 @@
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.
 
-- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8번 전부 완료**(8개 모듈 + 120 테스트 통과). 다음은 *통합/실데이터 연동* 단계 — 8개 모듈을 하나의 발굴 루프로 엮고(생성기→DSL→시뮬레이터→PIT→하니스→승격→supervisor), 라이브 가정으로 남겨둔 실데이터 소스(시세/펀더멘털/DART 상폐, LLM 제공자)를 연결한다. 이들은 사용자 결정이 필요하므로 진행 전 확인할 것.
+- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8번 전부 완료 + 통합 루프(`kairos_pipeline.py`)까지 완료**(9개 모듈 + 130 테스트 통과). 8개 모듈이 한 줄기(생성기→DSL→시뮬레이터→PIT→하니스→승격→supervisor)로 동작 확인됨.
+- **다음 작업**: *실데이터 연동* — 라이브 가정으로 남겨둔 실데이터 소스(시세/펀더멘털/DART 상폐, LLM 제공자)를 연결한다. 모두 **사용자 결정이 필요**하므로 진행 전 확인할 것.
 - 이 문서는 자기완결적이다. 이전 대화 기록 없이도 전체 맥락을 담고 있다.
 
 ## 1. 프로젝트 목표
@@ -123,8 +124,14 @@
 - **`FailureLog(path)`** — 실패 이벤트 영구화(`.kairos/`, gitignore), `count`/`mode_counts`로 반복 모드 학습→처치 격상(세션 넘어 누적). **`Supervisor.diagnose_divergence(detail)`** 휴리스틱 진단.
 - **실행**: `python3 kairos_supervisor.py`
 
+### `kairos_pipeline.py` — 통합 발굴 루프
+- **`DiscoveryPipeline`** — 생성기/시뮬레이터/원장/승격/supervisor를 받아 한 라운드 발굴. `evaluate_one(candidate, closes, volumes, regimes, adv, target, sid)`: 캐퍼시티 점검(시뮬레이터)→인과 백테스트(DSL+비용)→통계 게이트(하니스)→승격(PAPER) 또는 supervisor 처치. `run(...)`: PIT 편향 점검 후 n개 생성·검증.
+- **`backtest_candidate(...)`** — `CausalSeries`로 룩어헤드 없이 시그널 생성, 다음 바 수익률에 한국 비용 차감.
+- **상태**: PROMOTED_PAPER / REJECTED_OVERFIT / REJECTED_LIQUIDITY / BLOCKED_BIASED_DATA.
+- **실행**: `python3 kairos_pipeline.py`
+
 ### 테스트
-- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor. **실행: `python3 -m pytest -q` (현재 120 passed).**
+- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor/pipeline. **실행: `python3 -m pytest -q` (현재 130 passed).**
 
 ### 데모 출력 (실측)
 ```
