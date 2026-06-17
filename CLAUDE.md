@@ -88,8 +88,15 @@
 - **`capacity_analysis(adv_krw, target_notional, max_daily_participation)`** → `CapacityReport`(소화 일수/당일가능 여부).
 - **실행**: `python3 kairos_simulator.py`
 
+### `kairos_pit.py` — PIT 데이터 레이어
+- **`PITUniverse`** — `add_listing`, `log_delisting(ticker, delisted_on, recorded_on)`, `as_of(date)`(생존편향 없는 시점별 유니버스), `is_unbiased_asof(date)`(coverage_start 기준), `delisted_between(start, end)`.
+- **`as_of_join(timestamps, records, allow_same_timestamp=False)`** — 각 시점까지 알 수 있던 최신 `PITRecord.value`. 기본 strict(`<`)로 같은 바 누수 차단, `allow_same_timestamp=True`면 `<=`.
+- **`assert_no_same_bar_leak(signal_effective_at, decision_ts)`** — 같은 바/미래 정보면 예외 (시뮬레이터 '다음 바 체결'의 데이터쪽 짝).
+- **라이브 가정**: 실제 시세/펀더멘털/DART 상폐 소스는 미연동. 인메모리 인터페이스로 PIT 로직 확정.
+- **실행**: `python3 kairos_pit.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`. **실행: `python3 -m pytest -q` (현재 26 passed).**
+- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`. **실행: `python3 -m pytest -q` (현재 40 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -111,8 +118,8 @@
 ## 10. 빌드 로드맵 (우선순위 순)
 1. ✅ 검증기 코어 (비용모델 + 과최적화 가드) — `kairos_verifier.py` 완료
 2. ✅ 현실화 시뮬레이터 ③ — `kairos_simulator.py` 완료. 다음 바 체결, 참여율 기반 슬리피지(비용은 `KoreanCostModel` 위임), 캐퍼시티 이월/분석, 공매도 차입제약, 가격제한(±30%)/서킷·VI 정지 처리
-3. ⬜ PIT 데이터 레이어 — 현재 유니버스 + DART 상폐 전향 수집, as-of 조인, 같은 바 누수 방지 **(다음 작업)**
-4. ⬜ Kairos 임베디드 DSL — 단위 타입, 인과적 Series(룩어헤드 차단), 반응형 블록 (기존 엔진 위)
+3. ✅ PIT 데이터 레이어 — `kairos_pit.py` 완료. as-of 유니버스(생존편향 차단), 상폐 전향 수집(coverage_start), as-of 조인(strict=같은 바 누수 차단), same-bar leak 가드. (라이브 데이터 소스 미연동 — 인메모리 인터페이스/로직 우선)
+4. ⬜ Kairos 임베디드 DSL — 단위 타입, 인과적 Series(룩어헤드 차단), 반응형 블록 (기존 엔진 위) **(다음 작업)**
 5. ⬜ 생성기 — thesis 동반 가설 제안(LLM/GP), 경제적 근거 강제
 6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트
 7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백
