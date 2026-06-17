@@ -20,6 +20,9 @@ env/
 .ruff_cache/
 .ipynb_checkpoints/
 
+# Kairos runtime state (global trial ledger, failure logs)
+.kairos/
+
 # Env files
 .env*
 

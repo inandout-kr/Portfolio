@@ -107,8 +107,14 @@
 - **`GeneticGenerator`** — `generate(n)`, `mutate`, `crossover`(시드 결정적). **`LLMProposer(llm_fn)`** — provider-agnostic, LLM이 (카테고리|근거)를 주면 템플릿으로 Candidate화.
 - **실행**: `python3 kairos_generator.py`
 
+### `kairos_harness.py` — 통계 검증 하니스
+- **`TrialLedger(path)`** — per-period 샤프 누적(`record`), `n_trials`, `sr_variance`. `path` 주면 JSON 영구화(세션 넘어 다중검정 보정 유지), `None`이면 메모리. 런타임 경로는 `.kairos/`(gitignore).
+- **`walk_forward(returns, n_folds)`** → `WalkForwardReport`(구간별 샤프/양수비율/최악). **`regime_robustness(returns, regimes)`** → 레짐별 샤프.
+- **`evaluate_strategy(returns, ledger, regimes=None, thresholds=GateThresholds(), n_folds)`** → `Verdict`. 시도를 원장에 기록 후 그 N으로 DSR 계산 → DSR/안정성/레짐 게이트. **`backtest_overfit_prob`** = PBO 래퍼.
+- **실행**: `python3 kairos_harness.py`
+
 ### 테스트
-- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`. **실행: `python3 -m pytest -q` (현재 79 passed).**
+- `tests/` — `test_verifier.py`, `test_simulator.py`, `test_pit.py`, `test_dsl.py`, `test_generator.py`, `test_harness.py`. **실행: `python3 -m pytest -q` (현재 94 passed).**
 
 ### 데모 출력 (실측)
 ```
@@ -133,8 +139,8 @@
 3. ✅ PIT 데이터 레이어 — `kairos_pit.py` 완료. as-of 유니버스(생존편향 차단), 상폐 전향 수집(coverage_start), as-of 조인(strict=같은 바 누수 차단), same-bar leak 가드. (라이브 데이터 소스 미연동 — 인메모리 인터페이스/로직 우선)
 4. ✅ Kairos 임베디드 DSL — `kairos_dsl.py` 완료. 차원·통화 타입(Price/Shares/Notional), 인과적 Series(미래/자유인덱싱 차단), 반응형 블록(run_reactive).
 5. ✅ 생성기 — `kairos_generator.py` 완료. Thesis 강제(없으면 생성 불가), GP(트리/mutate/crossover, 프리미티브가 경제 카테고리 보유→thesis 자동유도), provider-agnostic LLMProposer. (risk_premium 은 펀더멘털 미연동이라 현 프리미티브엔 없음)
-6. ⬜ 통계 검증 하니스 — 워크포워드 + CSCV/PBO + DSR(전역 시도 원장 연동) + 안정성/레짐 테스트 **(다음 작업)**
-7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백
+6. ✅ 통계 검증 하니스 — `kairos_harness.py` 완료. `TrialLedger`(영구 시도원장→DSR의 N), 워크포워드 안정성, 레짐 강건성, `evaluate_strategy` 종합 게이트, PBO 래퍼.
+7. ⬜ 승격 게이트 + 페이퍼 + 라이브 피드백 **(다음 작업)**
 8. ⬜ 바깥쪽 supervisor 루프 — 실패 분류·처치 정책, 영구 시도원장+실패로그, 재개
 
 ## 11. 확정된 결정 3개 (2026-06 확정)
