@@ -3,8 +3,8 @@
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.
 
-- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8번 전부 완료 + 통합 루프(`kairos_pipeline.py`)까지 완료**(9개 모듈 + 130 테스트 통과). 8개 모듈이 한 줄기(생성기→DSL→시뮬레이터→PIT→하니스→승격→supervisor)로 동작 확인됨.
-- **다음 작업**: *실데이터 연동* — 라이브 가정으로 남겨둔 실데이터 소스(시세/펀더멘털/DART 상폐, LLM 제공자)를 연결한다. 모두 **사용자 결정이 필요**하므로 진행 전 확인할 것.
+- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8 + 통합 루프 + 실데이터 어댑터 3종까지 완료**(12개 모듈 + 146 테스트 통과). 발굴 폐루프가 한 줄기로 동작하고, 시세/DART상폐/LLM 어댑터가 주입식으로 준비됨.
+- **다음 작업**: 어댑터에 *실제 자격증명/데이터* 연결 — `ANTHROPIC_API_KEY`(LLM), `DART_API_KEY`(상폐), 사용자 시세 데이터(CSV/엔진). 코드/인터페이스는 완성, **키·데이터는 사용자 환경에서 공급**. 그 뒤 실데이터로 발굴 라운드 실행 + 펀더멘털 연동(risk_premium 활성화).
 - 이 문서는 자기완결적이다. 이전 대화 기록 없이도 전체 맥락을 담고 있다.
 
 ## 1. 프로젝트 목표
@@ -130,8 +130,13 @@
 - **상태**: PROMOTED_PAPER / REJECTED_OVERFIT / REJECTED_LIQUIDITY / BLOCKED_BIASED_DATA.
 - **실행**: `python3 kairos_pipeline.py`
 
+### 실데이터 어댑터 (주입식 — 키/데이터 없이 테스트됨)
+- **`kairos_data.py`** — 시세 어댑터. `bars_from_rows(rows)`→`Bar` 리스트, `closes_volumes(rows)`→파이프라인 입력, `load_csv(path)`. 컬럼 동의어/콤마/한글 헤더 허용, volume 없으면 거래대금 대체.
+- **`kairos_dart.py`** — DART 상폐 전향 수집. `collect_delistings(fetch_fn, recorded_on)`(소스 주입식)→`normalize`→`apply_to_universe(universe, records)`. `DartClient(api_key)`는 `DART_API_KEY`+네트워크 필요. 미추적 종목 스킵.
+- **`kairos_llm.py`** — LLMProposer용 `llm_fn`. `make_claude_llm_fn(client=None, model="claude-opus-4-8")`(기본 Claude, `ANTHROPIC_API_KEY`), `propose_hypotheses(prompt, llm_fn)`. client 주입으로 오프라인 테스트.
+
 ### 테스트
-- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor/pipeline. **실행: `python3 -m pytest -q` (현재 130 passed).**
+- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor/pipeline/adapters. **실행: `python3 -m pytest -q` (현재 146 passed).**
 
 ### 데모 출력 (실측)
 ```
