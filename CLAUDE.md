@@ -3,8 +3,8 @@
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.
 
-- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8 + 통합 루프 + 실데이터 어댑터 3종까지 완료**(12개 모듈 + 146 테스트 통과). 발굴 폐루프가 한 줄기로 동작하고, 시세/DART상폐/LLM 어댑터가 주입식으로 준비됨.
-- **다음 작업**: 어댑터에 *실제 자격증명/데이터* 연결 — `ANTHROPIC_API_KEY`(LLM), `DART_API_KEY`(상폐), 사용자 시세 데이터(CSV/엔진). 코드/인터페이스는 완성, **키·데이터는 사용자 환경에서 공급**. 그 뒤 실데이터로 발굴 라운드 실행 + 펀더멘털 연동(risk_premium 활성화).
+- **현재 상태**: §11 결정 3개 확정, §10 로드맵 **1~8 + 통합 루프 + 실데이터 어댑터 3종 + 실행 CLI(`kairos_run.py`)까지 완료**(13개 모듈 + 158 테스트 통과). 발굴 폐루프가 한 줄기로 동작하고, 시세/DART상폐/LLM 어댑터가 CLI 한 줄로 연결됨.
+- **다음 작업**: 사용자 환경에서 키·데이터 공급 후 실행 — `python3 kairos_run.py check` → `delistings`(DART 전향 수집, 지금부터 매일) → `discover --csv <시세> [--llm]`. 코드는 완성, **`ANTHROPIC_API_KEY`·`DART_API_KEY`·시세 CSV 는 사용자 환경에서 공급**. 그 뒤 펀더멘털 연동(risk_premium 활성화), 승격(PAPER) 상태 영구화.
 - 이 문서는 자기완결적이다. 이전 대화 기록 없이도 전체 맥락을 담고 있다.
 
 ## 1. 프로젝트 목표
@@ -135,8 +135,14 @@
 - **`kairos_dart.py`** — DART 상폐 전향 수집. `collect_delistings(fetch_fn, recorded_on)`(소스 주입식)→`normalize`→`apply_to_universe(universe, records)`. `DartClient(api_key)`는 `DART_API_KEY`+네트워크 필요. 미추적 종목 스킵.
 - **`kairos_llm.py`** — LLMProposer용 `llm_fn`. `make_claude_llm_fn(client=None, model="claude-opus-4-8")`(기본 Claude, `ANTHROPIC_API_KEY`), `propose_hypotheses(prompt, llm_fn)`. client 주입으로 오프라인 테스트.
 
+### `kairos_run.py` — 실데이터 실행 CLI
+- **`check`** — 키 존재 여부(값은 출력 안 함)/anthropic 패키지/원장 N/실패모드/상폐 로그 건수.
+- **`discover --csv PATH [--n 20] [--llm] [--instrument eq|fut] [--bars-per-day 1] [--adv] [--target] [--regime-col] [--folds 6] [--seed]`** — CSV→GP(+LLM) 후보→`DiscoveryPipeline.evaluate_one`. ADV 는 최근 20일 거래대금으로 추정. 캐퍼시티는 후보 무관이라 **먼저 점검 후 불가면 중단**(실패로그 오염 방지). 원장/실패로그는 `--state-dir`(기본 `.kairos/`)에 영구 → **DSR 의 N 이 라운드·세션을 넘어 누적**. 결과는 `outcomes.jsonl`(expr/thesis/상태/DSR) 추가 기록.
+- **`delistings [--from-json raw.json]`** — DART(키) 또는 파일에서 상폐 수집 → `.kairos/delistings.json` 누적. 같은 (종목,상폐일)은 **최초 `recorded_on` 보존**(PIT).
+- 생존편향 경고를 매 라운드 출력(§6/§8-4): 백테스트 통과 = PAPER 진입일 뿐.
+
 ### 테스트
-- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor/pipeline/adapters. **실행: `python3 -m pytest -q` (현재 146 passed).**
+- `tests/` — verifier/simulator/pit/dsl/generator/harness/promotion/supervisor/pipeline/adapters/run. **실행: `python3 -m pytest -q` (현재 158 passed).**
 
 ### 데모 출력 (실측)
 ```
