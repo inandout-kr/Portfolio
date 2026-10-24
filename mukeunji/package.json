@@ -1,0 +1,21 @@
+{
+  "name": "mukeunji",
+  "version": "0.1.0",
+  "private": true,
+  "description": "묵은지 — 시간이 지나야 맛이 드는 익명 평판 프로토콜 (MVP 코어)",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "tsc -p .",
+    "typecheck": "tsc -p . --noEmit",
+    "test": "npm run build && node --test --test-reporter=spec \"dist/test/**/*.test.js\"",
+    "demo": "npm run build && node dist/demo/simulate.js",
+    "mutate": "node scripts/mutate.mjs"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "typescript": "5.9.3"
+  }
+}
