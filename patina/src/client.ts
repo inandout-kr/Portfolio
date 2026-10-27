@@ -2,7 +2,7 @@
 // 엔진은 봉인된 상자만 받는다.
 
 import { generateKeyPair, hex, signMessage, systemRandom, type KeyPair, type RandomSource } from "./crypto.js";
-import type { Ack, MukeunjiEngine } from "./engine.js";
+import type { Ack, PatinaEngine } from "./engine.js";
 import {
   encodeContent,
   orderPair,
@@ -15,7 +15,7 @@ import type { Timelock } from "./timelock.js";
 import type { ReviewerTask } from "./views.js";
 
 export interface MemberDeps {
-  readonly engine: MukeunjiEngine;
+  readonly engine: PatinaEngine;
   readonly timelock: Timelock;
   readonly rng?: RandomSource;
   readonly keys?: KeyPair;
@@ -25,7 +25,7 @@ export class Member {
   readonly keys: KeyPair;
   /** 상대 공개키 → 관계 (내 기기에만 있는 opening 포함). */
   readonly relationships = new Map<string, { readonly id: string; readonly opening: RelationshipOpening }>();
-  readonly #engine: MukeunjiEngine;
+  readonly #engine: PatinaEngine;
   readonly #timelock: Timelock;
   readonly #rng: RandomSource;
   /** slotId(나만 아는 능력값) → 마지막으로 봉인한 내용. */

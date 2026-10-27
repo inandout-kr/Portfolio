@@ -1,5 +1,5 @@
 // 공개 난수 비콘 (drand 모델). 라운드 r 의 값은 그 라운드 시각이 오기 전엔 누구도 모른다.
-// 묵은지는 이걸 두 군데 쓴다: (1) 공개 지연을 "등록 이후" 값으로 정해서 시점 고르기를 막고,
+// 파티나는 이걸 두 군데 쓴다: (1) 공개 지연을 "등록 이후" 값으로 정해서 시점 고르기를 막고,
 // (2) 타임락 봉인의 해제 조건으로 쓴다.
 
 import type { Clock } from "./time.js";
@@ -73,6 +73,6 @@ export class MockBeacon implements Beacon {
 
   async randomness(round: number): Promise<Buffer> {
     if (round < 1 || this.timeOfRound(round) > this.#clock.now()) throw new BeaconNotReadyError(round);
-    return hmac(this.#seed, "mukeunji/mock-beacon", round);
+    return hmac(this.#seed, "patina/mock-beacon", round);
   }
 }

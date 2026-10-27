@@ -3,9 +3,9 @@
 
 import { MockBeacon } from "./beacon.js";
 import { Member } from "./client.js";
-import type { MukeunjiConfig } from "./config.js";
+import type { PatinaConfig } from "./config.js";
 import { SeededRandom, sha256 } from "./crypto.js";
-import { MukeunjiEngine } from "./engine.js";
+import { PatinaEngine } from "./engine.js";
 import { InMemoryChain, TimeNotary } from "./notary.js";
 import { DAY, VirtualClock } from "./time.js";
 import { MockTimelock } from "./timelock.js";
@@ -16,7 +16,7 @@ export interface WorldOptions {
   readonly beaconSeed?: string;
   /** 기본 2026-11-01 00:00 UTC. */
   readonly start?: number;
-  readonly config?: Partial<MukeunjiConfig>;
+  readonly config?: Partial<PatinaConfig>;
 }
 
 export class World {
@@ -25,18 +25,18 @@ export class World {
   readonly timelock: MockTimelock;
   readonly chain: InMemoryChain;
   readonly notary: TimeNotary;
-  readonly engine: MukeunjiEngine;
+  readonly engine: PatinaEngine;
   readonly #memberRng: SeededRandom;
 
   constructor(opts: WorldOptions = {}) {
-    const seed = opts.seed ?? "mukeunji";
+    const seed = opts.seed ?? "patina";
     const rng = (label: string) => new SeededRandom(sha256(seed, label));
     this.clock = new VirtualClock(opts.start ?? Date.UTC(2026, 10, 1));
     this.beacon = new MockBeacon({ clock: this.clock, seed: sha256(opts.beaconSeed ?? seed, "beacon") });
     this.timelock = new MockTimelock(this.beacon, sha256(seed, "tlock-master"), rng("tlock"));
     this.chain = new InMemoryChain(this.clock);
     this.notary = new TimeNotary(this.chain);
-    this.engine = new MukeunjiEngine({
+    this.engine = new PatinaEngine({
       clock: this.clock,
       beacon: this.beacon,
       timelock: this.timelock,

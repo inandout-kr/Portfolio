@@ -2,7 +2,7 @@
 
 import { hex, sha256, type Bytes } from "./crypto.js";
 
-export const DOMAIN = "mukeunji/v1";
+export const DOMAIN = "patina/v1";
 
 /** 관계를 여는 값. 체인/엔진에는 이걸 해시한 commitment 만 남는다 (규칙 1). */
 export interface RelationshipOpening {

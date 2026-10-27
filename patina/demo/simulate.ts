@@ -1,6 +1,6 @@
-// 묵은지 시뮬레이션. 가상 시계로 2026-11-01 부터 하루씩 돌린다.
+// 파티나 시뮬레이션. 가상 시계로 2026-11-01 부터 하루씩 돌린다.
 //   0~3년   : 활동기 — 사람들이 만나고, 겪어보고, 평가하고, 재확인한다.
-//   3~4.5년 : 숙성기 — 새 관계 없이 시간만 흐른다. "3년 재확인"은 공개 후 3년이 지나야 생기는 값이라
+//   3~4.5년 : 에이징 — 새 관계 없이 시간만 흐른다 (가죽이 길드는 기간처럼). "3년 재확인"은 공개 후 3년이 지나야 생기는 값이라
 //             3년 시점엔 원리상 비어 있다. 그걸 채우려면 시간을 더 흘리는 수밖에 없다 (이게 핵심).
 // 같은 시드면 출력이 매번 똑같다 (README 의 결과가 그대로 재현된다).
 //
@@ -26,8 +26,8 @@ import {
 const ACTIVE_DAYS = 3 * 365;
 const TOTAL_DAYS = Math.round(4.5 * 365);
 
-const w = new World({ seed: "mukeunji-demo" });
-const rng = new SeededRandom("mukeunji-demo/decisions");
+const w = new World({ seed: "patina-demo" });
+const rng = new SeededRandom("patina-demo/decisions");
 const chance = (p: number) => randomFloat(rng) < p;
 const pick = <T>(xs: readonly T[]): T => xs[randomInt(rng, xs.length)]!;
 const say = (stance: ReviewContent["stance"], texts: readonly string[]): ReviewContent => ({ stance, text: pick(texts) });
@@ -170,6 +170,34 @@ for (let d = 0; d < TOTAL_DAYS; d++) {
 // ---------------------------------------------------------------- 출력
 
 const v = (p: Persona): ProfileView => w.engine.view(p.member.pub);
+
+// npm run demo -- --json : 랜딩페이지 등에 옮길 수치를 손으로 베끼지 않도록 같은 결과를 JSON 으로
+if (process.argv.includes("--json")) {
+  console.log(
+    JSON.stringify(
+      {
+        period: { start: new Date(start).toISOString().slice(0, 10), end: new Date(w.clock.now()).toISOString().slice(0, 10) },
+        stats: {
+          users: community.length + everyone.length + fakes,
+          relationships: related.size,
+          sealedReviews: reviewers.filter((r) => r.written).length,
+          chainRecords: w.chain.payloads.length,
+        },
+        months: columns,
+        people: everyone.map((p) => ({
+          name: p.name,
+          desc: p.desc,
+          scores: history.get(p.name),
+          curveAt3y: threeYearSnapshot.get(p.name)!.curve,
+          view: v(p),
+        })),
+      },
+      null,
+      1,
+    ),
+  );
+  process.exit(0);
+}
 const fmt = (x: number) => (Math.abs(x) < 0.005 ? 0 : x).toFixed(2).padStart(7);
 /** 한글은 터미널에서 두 칸이라 padStart 로는 열이 안 맞는다. */
 const padCells = (s: string, width: number) => " ".repeat(Math.max(0, width - [...s].reduce((n, c) => n + (c.charCodeAt(0) > 0x2e80 ? 2 : 1), 0))) + s;
@@ -177,8 +205,8 @@ const iso = (t: number) => new Date(t).toISOString().slice(0, 10);
 const written = reviewers.filter((r) => r.written).length;
 const rootSizes = new Set(w.chain.payloads.map((p) => p.length));
 
-console.log(`묵은지 시뮬레이션 — 가상 시계 ${iso(start)} → ${iso(w.clock.now())} (하루 단위 tick ${TOTAL_DAYS}회)`);
-console.log(`  0~3년 활동기 · 3~4.5년 숙성기(새 관계 없음)`);
+console.log(`파티나 시뮬레이션 — 가상 시계 ${iso(start)} → ${iso(w.clock.now())} (하루 단위 tick ${TOTAL_DAYS}회)`);
+console.log(`  0~3년 활동기 · 3~4.5년 에이징(새 관계 없음)`);
 console.log(
   `  사용자 ${community.length + everyone.length + fakes}명 · 관계 ${related.size}개 · 봉인 평가 ${written}건 · ` +
     `체인 기록 ${w.chain.payloads.length}회 (${rootSizes.size === 1 && rootSizes.has(32) ? "전부 32바이트 머클루트" : "?"})`,

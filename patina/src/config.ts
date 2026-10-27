@@ -1,6 +1,6 @@
 import { DAY, HOUR, MONTH, WEEK, YEAR } from "./time.js";
 
-export interface MukeunjiConfig {
+export interface PatinaConfig {
   /** 규칙 4: 숙성된 관계의 봉인 풀린 평가가 n 개 모이면 묶음 공개. */
   readonly batchSize: number;
   /** 규칙 10: 서로 다른 관계 k 개가 경고해야 공개. */
@@ -28,7 +28,7 @@ export interface MukeunjiConfig {
   readonly maxTextLength: number;
 }
 
-export const DEFAULT_CONFIG: MukeunjiConfig = Object.freeze({
+export const DEFAULT_CONFIG: PatinaConfig = Object.freeze({
   batchSize: 4,
   warningThreshold: 3,
   minDelay: WEEK,
@@ -45,7 +45,7 @@ export const DEFAULT_CONFIG: MukeunjiConfig = Object.freeze({
   maxTextLength: 1_000,
 });
 
-export function resolveConfig(overrides: Partial<MukeunjiConfig> = {}): MukeunjiConfig {
+export function resolveConfig(overrides: Partial<PatinaConfig> = {}): PatinaConfig {
   const cfg = { ...DEFAULT_CONFIG, ...overrides };
   if (cfg.batchSize < 2) throw new RangeError("batchSize 는 2 이상 (1 이면 익명 집합이 없다)");
   if (cfg.warningThreshold < 2) throw new RangeError("warningThreshold 는 2 이상");

@@ -45,6 +45,6 @@ export class MockTimelock implements Timelock {
   }
 
   #roundKey(round: number): Buffer {
-    return hmac(this.#master, "mukeunji/mock-tlock", round);
+    return hmac(this.#master, "patina/mock-tlock", round);
   }
 }

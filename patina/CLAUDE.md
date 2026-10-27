@@ -1,7 +1,9 @@
-# 묵은지 (Mukeunji) — 익명 평판 프로토콜 (프로젝트 브리프)
+# Patina (파티나) — 익명 평판 프로토콜 (프로젝트 브리프)
 
 이 파일만 읽고 새 세션이 이어서 작업할 수 있게 쓴다. 사용자 요약과 데모 결과는 `README.md`에 있다.
 (같은 레포의 루트 `CLAUDE.md`는 별개 프로젝트인 Kairos 브리프다.)
+
+이름: **Patina(파티나)** — 구리·가죽을 오래 써야 생기는 광택. 2026-10-27 사용자 결정으로 옛 이름 "묵은지"(폴더 `mukeunji/`)에서 바꿨다. 코드·도메인 태그(`patina/v1`)·시드까지 전부 새 이름이다.
 
 ## 현재 상태 (2026-10)
 - **MVP 코어 완료**: 확정 규칙 1~12를 엔진으로 구현했다.
@@ -13,10 +15,10 @@
 
 ## 명령
 ```bash
-cd mukeunji
+cd patina
 npm ci
 npm test          # tsc 빌드 후 node:test (spec 리포터)
-npm run demo      # dist/demo/simulate.js
+npm run demo      # dist/demo/simulate.js (-- --json 이면 랜딩페이지용 수치를 JSON 으로)
 npm run mutate    # scripts/mutate.mjs — 엔진을 고치면 반드시 돌릴 것
 npm run typecheck
 ```
@@ -31,7 +33,7 @@ Node 22 이상이 필요하다. 개발 의존성은 typescript 5.9.3과 @types/n
 ## 구조
 | 파일 | 역할 | v2 교체 대상 |
 |---|---|---|
-| `src/engine.ts` | `MukeunjiEngine` — 규칙 집행. `tick()` 7단계: 공증 → 지연 확정 → 봉인 해제 → 경고 임계 → 묶음/집계 → 재확인 체크포인트 → 결과 버퍼 → 정기 갱신 | — |
+| `src/engine.ts` | `PatinaEngine` — 규칙 집행. `tick()` 7단계: 공증 → 지연 확정 → 봉인 해제 → 경고 임계 → 묶음/집계 → 재확인 체크포인트 → 결과 버퍼 → 정기 갱신 | — |
 | `src/client.ts` | `Member` — 키, 관계 opening, slotId(능력값), 작성 내용 | PWA 클라이언트 |
 | `src/beacon.ts` | `Beacon` + `MockBeacon` + `DRAND_QUICKNET`(2026-10 실측: 3초, genesis 1692803367) | drand HTTP 폴러+캐시 |
 | `src/timelock.ts` | `Timelock` + `MockTimelock` | tlock-js |

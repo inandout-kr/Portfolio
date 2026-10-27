@@ -11,7 +11,7 @@ import {
   Member,
   MockBeacon,
   MockTimelock,
-  MukeunjiEngine,
+  PatinaEngine,
   ProtocolError,
   SeededRandom,
   TimeNotary,
@@ -52,7 +52,7 @@ function build(opts: { slowAdapters: boolean; membership?: MembershipVerifier })
   const chain: ChainNotary = opts.slowAdapters
     ? { publish: (root) => slow(() => mockChain.publish(root)), lookup: (tx) => mockChain.lookup(tx) }
     : mockChain;
-  const engine = new MukeunjiEngine({
+  const engine = new PatinaEngine({
     clock,
     beacon,
     timelock,
@@ -111,7 +111,7 @@ describe("v2 어댑터 자리", () => {
       },
     };
     const timelock = new MockTimelock(lagging, sha256("lag", "tlock"), new SeededRandom("lag/tlock"));
-    const engine = new MukeunjiEngine({ clock, beacon: lagging, timelock, notary: new TimeNotary(new InMemoryChain(clock)), rng: new SeededRandom("lag/e") });
+    const engine = new PatinaEngine({ clock, beacon: lagging, timelock, notary: new TimeNotary(new InMemoryChain(clock)), rng: new SeededRandom("lag/e") });
     const rng = new SeededRandom("lag/m");
     const s = new Member({ engine, timelock, rng }).join();
     const fs = Array.from({ length: 4 }, () => new Member({ engine, timelock, rng }).join());

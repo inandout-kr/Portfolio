@@ -1,6 +1,6 @@
 # Kairos — 자동 알파 발굴 시스템 (프로젝트 브리프)
 
-> 이 레포엔 프로젝트가 두 개다. 이 파일은 **Kairos**(루트의 `kairos_*.py`) 브리프이고, **묵은지**(익명 평판 프로토콜, TypeScript)는 `mukeunji/` 폴더에 있다 — 브리프는 `mukeunji/CLAUDE.md`.
+> 이 레포엔 프로젝트가 두 개다. 이 파일은 **Kairos**(루트의 `kairos_*.py`) 브리프이고, **Patina(파티나)**(익명 평판 프로토콜, TypeScript)는 `patina/` 폴더에 있다 — 브리프는 `patina/CLAUDE.md`.
 
 ## 새 Claude Code 세션 시작 방법
 이 `CLAUDE.md` 와 `kairos_verifier.py` 를 프로젝트 루트에 두면 Claude Code 가 이 파일을 자동으로 읽는다.

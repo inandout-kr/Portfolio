@@ -1,7 +1,7 @@
 // 규칙 9: 가중치 = 보증인 자신의 숙성도 × 관계 나이 × 재확인 보너스.
 // 숙성도는 제곱 곡선이라 초반엔 아주 느리게 오른다: 1개월 0.002, 6개월 0.06, 1년 0.25, 2년 1.
 
-import type { MukeunjiConfig } from "./config.js";
+import type { PatinaConfig } from "./config.js";
 
 export function maturity(ageMs: number, fullAgeMs: number): number {
   if (ageMs <= 0) return 0;
@@ -18,7 +18,7 @@ export function standingFactor(received: number): number {
 }
 
 /** 보증인 신뢰도(standing) 계산에 쓰는 1단계 가중치. 재귀를 끊으려고 standing 항이 없다. */
-export function baseWeight(accountAge: number, relationshipAge: number, level: number, cfg: MukeunjiConfig): number {
+export function baseWeight(accountAge: number, relationshipAge: number, level: number, cfg: PatinaConfig): number {
   const bonus = cfg.reaffirmBonus[level];
   if (bonus === undefined) throw new RangeError(`재확인 단계 ${level} 이 없다`);
   return maturity(accountAge, cfg.maturityFullAge) * maturity(relationshipAge, cfg.maturityFullAge) * bonus;
@@ -35,6 +35,6 @@ export interface WeightInputs {
   readonly level: number;
 }
 
-export function endorsementWeight(w: WeightInputs, cfg: MukeunjiConfig): number {
+export function endorsementWeight(w: WeightInputs, cfg: PatinaConfig): number {
   return baseWeight(w.accountAge, w.relationshipAge, w.level, cfg) * standingFactor(w.received);
 }

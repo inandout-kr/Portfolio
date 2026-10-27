@@ -8,7 +8,7 @@ import {
   MINUTE,
   MONTH,
   Member,
-  MukeunjiEngine,
+  PatinaEngine,
   ProtocolError,
   World,
   YEAR,
@@ -400,7 +400,8 @@ describe("규칙 7·8 — 1년·3년 재확인과 신뢰 리텐션 커브", () =
   it("열린 요청이 없거나 작성자 서명이 아니면 재확인 거부", async () => {
     const { w, s, fs, slots } = await world([], []);
     assert.throws(() => fs[0]!.reaffirm(slots[0]!, 0), code("no-prompt"));
-    await w.advance(YEAR);
+    // 요청은 각자의 공개 시각 + 1년에 열린다 (평가마다 공개 시각이 달라서 시간을 고정하면 이미 기한이 지났을 수 있다)
+    await w.advanceUntil(() => fs[0]!.tasks().some((t) => t.kind === "reaffirm"), YEAR + 100 * DAY);
     const task = fs[0]!.tasks().find((t) => t.kind === "reaffirm");
     assert.ok(task);
     assert.throws(
@@ -544,7 +545,7 @@ describe("규칙 12 — 토큰 없음·양도 불가, 체인은 머클루트 공
   });
 
   it("엔진·클라이언트 어디에도 이전·발행·잔고 같은 자산 연산이 없다", () => {
-    const names = [...Object.getOwnPropertyNames(MukeunjiEngine.prototype), ...Object.getOwnPropertyNames(Member.prototype)];
+    const names = [...Object.getOwnPropertyNames(PatinaEngine.prototype), ...Object.getOwnPropertyNames(Member.prototype)];
     assert.ok(names.includes("view"));
     for (const n of names) assert.doesNotMatch(n, /transfer|mint|burn|token|balance|sell|buy|trade|withdraw/i);
   });

@@ -40,11 +40,11 @@ describe("암호 유틸", () => {
     const other = keyPairFromSeed(Buffer.alloc(32, 2));
     assert.equal(k1.publicKey, k2.publicKey);
     assert.match(k1.publicKey, /^[0-9a-f]{64}$/);
-    const msg = Buffer.from("묵은지");
+    const msg = Buffer.from("파티나");
     const sig = signMessage(k1, msg);
     assert.ok(verifyMessage(k1.publicKey, msg, sig));
     assert.ok(!verifyMessage(other.publicKey, msg, sig));
-    assert.ok(!verifyMessage(k1.publicKey, Buffer.from("묵은지!"), sig));
+    assert.ok(!verifyMessage(k1.publicKey, Buffer.from("파티나!"), sig));
     assert.ok(!verifyMessage(k1.publicKey, msg, "zz"));
   });
 

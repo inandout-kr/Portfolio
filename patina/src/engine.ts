@@ -1,4 +1,4 @@
-// 묵은지 프로토콜 엔진 (운영자 노드). 규칙 1~12 를 한 곳에서 집행한다.
+// 파티나 프로토콜 엔진 (운영자 노드). 규칙 1~12 를 한 곳에서 집행한다.
 //
 // 데이터 흐름:
 //   관계(상호서명, 해시+공증시각) → 평가 등록(관계당 1회) → 다음 비콘 라운드로 지연 확정(1주~3개월)
@@ -11,7 +11,7 @@
 // 또는 리뷰와 무관한 고정 달력 주기에만 다시 계산된다. 그래서 개별 평가의 도착·해제는 어떤 출력에도 흔적이 없다.
 
 import { BeaconNotReadyError, firstRoundAtOrAfter, type Beacon } from "./beacon.js";
-import { resolveConfig, type MukeunjiConfig } from "./config.js";
+import { resolveConfig, type PatinaConfig } from "./config.js";
 import { fromHex, hex, hmac, sha256, shuffle, systemRandom, verifyMessage, type Bytes, type RandomSource } from "./crypto.js";
 import { MembershipError, TransparentMembership, type MembershipVerifier, type ReviewRegistration } from "./membership.js";
 import {
@@ -86,7 +86,7 @@ export interface EngineDeps {
   readonly rng?: RandomSource;
   /** 같은 쌍의 중복 관계를 막는 태그용 비밀. 공개 해시로 두면 누구나 (A,B) 쌍 존재를 조회할 수 있다. */
   readonly operatorSecret?: Bytes;
-  readonly config?: Partial<MukeunjiConfig>;
+  readonly config?: Partial<PatinaConfig>;
 }
 
 interface Slot {
@@ -152,8 +152,8 @@ interface SubjectState {
   view: ProfileView;
 }
 
-export class MukeunjiEngine {
-  readonly config: MukeunjiConfig;
+export class PatinaEngine {
+  readonly config: PatinaConfig;
   readonly #clock: Clock;
   readonly #beacon: Beacon;
   readonly #timelock: Timelock;

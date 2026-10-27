@@ -95,7 +95,7 @@ export class InMemoryChain implements ChainNotary {
     if (root.length !== 32) throw new RangeError("체인에는 32바이트 머클루트만 올린다");
     this.payloads.push(Buffer.from(root));
     const receipt: ChainReceipt = {
-      txRef: hex(sha256("mukeunji/mock-tx", this.#receipts.size, root)),
+      txRef: hex(sha256("patina/mock-tx", this.#receipts.size, root)),
       root: hex(root),
       timestamp: this.#clock.now(),
     };
