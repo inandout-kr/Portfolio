@@ -26,7 +26,17 @@ export const signedMessage = {
   register: (relationshipId: string, reviewer: string): Buffer => sha256(`${DOMAIN}/register`, relationshipId, reviewer),
   seal: (slotId: string, round: number, ciphertext: Bytes): Buffer => sha256(`${DOMAIN}/seal`, slotId, round, ciphertext),
   reaffirm: (slotId: string, checkpoint: number): Buffer => sha256(`${DOMAIN}/reaffirm`, slotId, checkpoint),
+  /** 앱의 초대코드 발급: "이 nonce 로 관계를 열겠다"는 초대한 사람의 서명. */
+  invite: (pub: string, nonce: string): Buffer => sha256(`${DOMAIN}/invite`, pub, nonce),
 };
+
+/**
+ * 두 휴대폰이 같은 관계에 서명하는지 사람이 눈으로 맞춰보는 4자리 숫자 (블루투스 페어링과 같은 방식).
+ * 중간에서 누가 공개키를 바꿔치기하면 두 화면의 숫자가 달라진다.
+ */
+export function verificationDigits(relationshipId: string): string {
+  return String(sha256(`${DOMAIN}/verify`, relationshipId).readUInt32BE(0) % 10_000).padStart(4, "0");
+}
 
 // ---------------------------------------------------------------- 평가 내용
 

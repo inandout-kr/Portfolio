@@ -195,6 +195,13 @@ export class PatinaEngine {
     this.#notary.submit(leaf);
   }
 
+  /** 계정이 공증된 시각 (Est. 배지). 아직 체인에 안 올라갔으면 null, 없는 계정이면 undefined. */
+  accountRecord(pub: string): { readonly pub: string; readonly anchoredAt: number | null } | undefined {
+    const leaf = this.#accounts.get(pub);
+    if (!leaf) return undefined;
+    return { pub, anchoredAt: this.#notary.anchoredAt(leaf) ?? null };
+  }
+
   createRelationship(h: Handshake): string {
     const { a, b, nonce } = h.opening;
     if (a === b) throw new ProtocolError("self-relationship", "자기 자신과는 관계를 맺을 수 없다");

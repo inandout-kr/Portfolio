@@ -26,6 +26,7 @@ import {
   verifyMessage,
   firstRoundAtOrAfter,
   resolveConfig,
+  sealToRoundKey,
 } from "../src/index.js";
 
 describe("암호 유틸", () => {
@@ -115,6 +116,22 @@ describe("타임락 봉인", () => {
     await assert.rejects(tl.open(box1), BeaconNotReadyError);
     clock.advance(DAY);
     assert.equal((await tl.open(box1)).toString(), "비밀");
+  });
+});
+
+describe("휴대폰 봉인 (라운드 공개키만으로)", () => {
+  it("공개키만으로 봉인하고, 라운드가 와야 열리며, 다른 라운드 키로 봉인한 상자는 열리지 않는다", async () => {
+    const clock = new VirtualClock(Date.UTC(2026, 9, 24));
+    const beacon = new MockBeacon({ clock, seed: Buffer.from("x") });
+    const tl = new MockTimelock(beacon, Buffer.from("master"), new SeededRandom("t"));
+    const round = beacon.roundAt(clock.now() + DAY);
+    const box = sealToRoundKey(Buffer.from("폰에서 봉인"), round, tl.roundPublicKey(round));
+    const wrongKey = sealToRoundKey(Buffer.from("x"), round, tl.roundPublicKey(round + 1));
+    await assert.rejects(tl.open(box), BeaconNotReadyError);
+    clock.advance(DAY);
+    assert.equal((await tl.open(box)).toString(), "폰에서 봉인");
+    await assert.rejects(tl.open(wrongKey));
+    assert.throws(() => sealToRoundKey(Buffer.from("x"), round, Buffer.alloc(31)), RangeError);
   });
 });
 

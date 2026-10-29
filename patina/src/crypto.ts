@@ -1,18 +1,13 @@
-// 암호 유틸: 도메인 분리 해시, Ed25519 서명, AEAD, 결정적 난수.
-// 외부 의존 없이 node:crypto 만 쓴다.
+// 암호 유틸: 도메인 분리 해시, Ed25519 서명, X25519, AES-GCM, 결정적 난수.
+// 서버(Node)와 휴대폰 브라우저가 같은 코드를 돌리도록 순수 JS 감사 라이브러리(noble)만 쓴다.
+// 브라우저 번들에서는 Buffer 폴리필을 주입한다 (app/client/buffer-shim.ts).
 
-import {
-  createCipheriv,
-  createDecipheriv,
-  createHash,
-  createHmac,
-  createPrivateKey,
-  createPublicKey,
-  randomBytes,
-  sign,
-  verify,
-  type KeyObject,
-} from "node:crypto";
+import { gcm } from "@noble/ciphers/aes.js";
+import { ed25519, x25519 } from "@noble/curves/ed25519.js";
+import { hkdf } from "@noble/hashes/hkdf.js";
+import { hmac as nobleHmac } from "@noble/hashes/hmac.js";
+import { sha256 as nobleSha256 } from "@noble/hashes/sha2.js";
+import { randomBytes } from "@noble/hashes/utils.js";
 
 export type Bytes = Uint8Array;
 export type Part = Bytes | string | number;
@@ -33,11 +28,16 @@ export function encodeParts(...parts: Part[]): Buffer {
 }
 
 export function sha256(...parts: Part[]): Buffer {
-  return createHash("sha256").update(encodeParts(...parts)).digest();
+  return Buffer.from(nobleSha256(encodeParts(...parts)));
+}
+
+/** 인코딩 없이 바이트를 이어 붙여 해시한다 (머클 트리처럼 형식이 고정된 곳 전용). */
+export function sha256Raw(...chunks: Bytes[]): Buffer {
+  return Buffer.from(nobleSha256(Buffer.concat(chunks.map((c) => Buffer.from(c)))));
 }
 
 export function hmac(key: Bytes, ...parts: Part[]): Buffer {
-  return createHmac("sha256", key).update(encodeParts(...parts)).digest();
+  return Buffer.from(nobleHmac(nobleSha256, key, encodeParts(...parts)));
 }
 
 export function hex(b: Bytes): string {
@@ -49,27 +49,19 @@ export function fromHex(s: string): Buffer {
   return Buffer.from(s, "hex");
 }
 
-// ---------------------------------------------------------------- Ed25519
-
-// 원시 32바이트 키 <-> DER 변환용 고정 접두사 (RFC 8410).
-const SPKI_PREFIX = Buffer.from("302a300506032b6570032100", "hex");
-const PKCS8_PREFIX = Buffer.from("302e020100300506032b657004220420", "hex");
+// ---------------------------------------------------------------- Ed25519 (서명)
 
 export interface KeyPair {
   /** 원시 공개키 hex. 이게 곧 가명(pseudonym)이다. */
   readonly publicKey: string;
-  readonly privateKey: KeyObject;
+  /** 32바이트 시드. 사용자 기기 밖으로 나가지 않는다. */
+  readonly secretKey: Uint8Array;
 }
 
 export function keyPairFromSeed(seed: Bytes): KeyPair {
   if (seed.length !== 32) throw new RangeError("Ed25519 시드는 32바이트");
-  const privateKey = createPrivateKey({
-    key: Buffer.concat([PKCS8_PREFIX, Buffer.from(seed)]),
-    format: "der",
-    type: "pkcs8",
-  });
-  const spki = createPublicKey(privateKey).export({ format: "der", type: "spki" });
-  return { publicKey: hex(spki.subarray(spki.length - 32)), privateKey };
+  const secretKey = Uint8Array.from(seed);
+  return { publicKey: hex(ed25519.getPublicKey(secretKey)), secretKey };
 }
 
 export function generateKeyPair(rng: RandomSource = systemRandom): KeyPair {
@@ -77,20 +69,29 @@ export function generateKeyPair(rng: RandomSource = systemRandom): KeyPair {
 }
 
 export function signMessage(keys: KeyPair, message: Bytes): string {
-  return hex(sign(null, message, keys.privateKey));
+  return hex(ed25519.sign(message, keys.secretKey));
 }
 
 export function verifyMessage(publicKey: string, message: Bytes, signature: string): boolean {
   try {
-    const key = createPublicKey({
-      key: Buffer.concat([SPKI_PREFIX, fromHex(publicKey)]),
-      format: "der",
-      type: "spki",
-    });
-    return verify(null, message, key, fromHex(signature));
+    return ed25519.verify(fromHex(signature), message, fromHex(publicKey));
   } catch {
     return false;
   }
+}
+
+// ---------------------------------------------------------------- X25519 + HKDF (타임락 봉인용)
+
+export function x25519PublicKey(secret: Bytes): Buffer {
+  return Buffer.from(x25519.getPublicKey(secret));
+}
+
+export function x25519Shared(secret: Bytes, publicKey: Bytes): Buffer {
+  return Buffer.from(x25519.getSharedSecret(secret, publicKey));
+}
+
+export function hkdfSha256(ikm: Bytes, salt: Bytes, info: string, length = 32): Buffer {
+  return Buffer.from(hkdf(nobleSha256, ikm, salt, Buffer.from(info, "utf8"), length));
 }
 
 // ---------------------------------------------------------------- 난수
@@ -99,7 +100,7 @@ export interface RandomSource {
   bytes(n: number): Buffer;
 }
 
-export const systemRandom: RandomSource = { bytes: (n) => randomBytes(n) };
+export const systemRandom: RandomSource = { bytes: (n) => Buffer.from(randomBytes(n)) };
 
 /** 시드 고정 난수 (SHA-256 카운터 모드). 테스트·시뮬레이션 재현용이지 비밀 생성용이 아니다. */
 export class SeededRandom implements RandomSource {
@@ -150,16 +151,14 @@ export function shuffle<T>(items: readonly T[], rng: RandomSource): T[] {
 
 // ---------------------------------------------------------------- AEAD (AES-256-GCM)
 
+/** iv(12) | 암호문 | 태그(16). */
 export function aeadSeal(key: Bytes, plaintext: Bytes, rng: RandomSource): Buffer {
   const iv = rng.bytes(12);
-  const cipher = createCipheriv("aes-256-gcm", key, iv);
-  const ct = Buffer.concat([cipher.update(plaintext), cipher.final()]);
-  return Buffer.concat([iv, cipher.getAuthTag(), ct]);
+  return Buffer.concat([iv, Buffer.from(gcm(key, iv).encrypt(plaintext))]);
 }
 
+/** 인증 실패면 예외. */
 export function aeadOpen(key: Bytes, box: Bytes): Buffer {
   const b = Buffer.from(box);
-  const decipher = createDecipheriv("aes-256-gcm", key, b.subarray(0, 12));
-  decipher.setAuthTag(b.subarray(12, 28));
-  return Buffer.concat([decipher.update(b.subarray(28)), decipher.final()]);
+  return Buffer.from(gcm(key, b.subarray(0, 12)).decrypt(b.subarray(12)));
 }

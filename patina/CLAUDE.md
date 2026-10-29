@@ -7,7 +7,8 @@
 
 ## 현재 상태 (2026-10)
 - **MVP 코어 완료**: 확정 규칙 1~12를 엔진으로 구현했다.
-- **테스트 60개 통과**: 규칙별, 공격 6종, v2 어댑터 자리.
+- **앱 완료 (2026-10-29)**: 메타마스크처럼 단순한 휴대폰 웹앱 + Node 운영자 서버(`app/`). 메인(연결) 탭엔 내 코드·QR과 상대 코드 입력칸만, 관계·평판·설정은 다른 탭. 서버 없이 브라우저에서 통째로 도는 데모(`app/dist/web/demo.html`, claude.ai 아티팩트로도 게시)도 같은 코드.
+- **테스트 74개 통과**: 규칙별, 공격 6종, v2 어댑터 자리, 앱 흐름(연결·봉인·위장 수정·재확인·가상 친구·HTTP).
 - **뮤테이션 점검 18/18**: 핵심 규칙을 하나씩 망가뜨리면 전부 테스트가 잡는다.
 - **4.5년 시뮬레이션 데모**: 시드 고정이라 출력이 매번 같다.
 - **외부 의존은 전부 주입식 목업**이라 키·네트워크가 필요 없다: 시계, drand 비콘, tlock, 체인, ZK 멤버십.
@@ -18,11 +19,13 @@
 cd patina
 npm ci
 npm test          # tsc 빌드 후 node:test (spec 리포터)
-npm run demo      # dist/demo/simulate.js (-- --json 이면 랜딩페이지용 수치를 JSON 으로)
+npm run app       # 빌드 + 앱 번들 + 운영자 서버 (데모 모드, :8787). -- --real 이면 데모 기능 끔
+npm run app:build # esbuild 로 app/dist/web/{index.html,app.js,demo.html} + app/dist/artifact.html
+npm run demo      # dist/demo/simulate.js (-- --json 이면 랜딩페이지용 수치를 JSON 으로). noble 로 바꾼 뒤 ~40초
 npm run mutate    # scripts/mutate.mjs — 엔진을 고치면 반드시 돌릴 것
 npm run typecheck
 ```
-Node 22 이상이 필요하다. 개발 의존성은 typescript 5.9.3과 @types/node뿐이다. ESM이고, import 경로는 `.js` 확장자를 쓴다(NodeNext).
+Node 22 이상이 필요하다. 런타임 의존성은 noble(@noble/hashes·curves·ciphers 2.4.0)과 qrcode-generator 2.0.4, 개발 의존성은 typescript 5.9.3·@types/node·esbuild 0.28.2·buffer 6.0.3(브라우저 번들에 Buffer 주입)이다. 엔진은 Node 전용 API를 쓰지 않는다(서버·브라우저 공용). ESM이고, import 경로는 `.js` 확장자를 쓴다(NodeNext).
 
 ## 핵심 철학 (어기면 시스템이 망한다)
 - **평가의 재료는 시간뿐이다.** 시각은 주입된 `Clock`과 체인 공증 시각만 믿는다. 주장된 시각(사용자가 보낸 timestamp)은 절대 쓰지 않는다.
@@ -34,15 +37,20 @@ Node 22 이상이 필요하다. 개발 의존성은 typescript 5.9.3과 @types/n
 | 파일 | 역할 | v2 교체 대상 |
 |---|---|---|
 | `src/engine.ts` | `PatinaEngine` — 규칙 집행. `tick()` 7단계: 공증 → 지연 확정 → 봉인 해제 → 경고 임계 → 묶음/집계 → 재확인 체크포인트 → 결과 버퍼 → 정기 갱신 | — |
-| `src/client.ts` | `Member` — 키, 관계 opening, slotId(능력값), 작성 내용 | PWA 클라이언트 |
+| `src/client.ts` | `Member` — 키, 관계 opening, slotId(능력값), 작성 내용 (테스트·시뮬레이션·데모 가상 친구용. 실제 앱은 `app/client/patina-client.ts`) | — |
 | `src/beacon.ts` | `Beacon` + `MockBeacon` + `DRAND_QUICKNET`(2026-10 실측: 3초, genesis 1692803367) | drand HTTP 폴러+캐시 |
-| `src/timelock.ts` | `Timelock` + `MockTimelock` | tlock-js |
+| `src/timelock.ts` | `Timelock` + `MockTimelock`(라운드 공개키) + `sealToRoundKey`(휴대폰이 쓰는 봉인) | tlock-js |
 | `src/notary.ts` | 머클(잎 0x00/노드 0x01, 홀수는 복제 없이 올림), `ChainNotary`, `TimeNotary`, `verifyInclusion` | L2 기록 |
 | `src/membership.ts` | `MembershipVerifier` + `TransparentMembership` | Semaphore ZK |
 | `src/weights.ts` | `maturity`(제곱, 2년 만점), `standingFactor`(0.2~1), `baseWeight`, `endorsementWeight` | — |
-| `src/views.ts` | `ProfileView`, `ReviewerTask`, `renderCurve` | PWA 화면 계약 |
+| `src/views.ts` | `ProfileView`, `ReviewerTask`, `renderCurve` | 앱 화면 계약 |
 | `src/world.ts` | 테스트·데모 공용 배선 (`World`, `advance`, `advanceUntil`) | — |
-| `test/` | `primitives` / `rules`(규칙 1~12) / `attacks`(6종) / `adapters`(느린 비동기 어댑터·늦은 비콘·멤버십 교체) | — |
+| `test/` | `primitives` / `rules`(규칙 1~12) / `attacks`(6종) / `adapters`(느린 비동기 어댑터·늦은 비콘·멤버십 교체) / `app`(앱 흐름·HTTP) | — |
+| `app/api.ts` | `PatinaApi` 계약, `httpApi`(실서버), `localApi`(브라우저 안 서비스, JSON 왕복), 초대코드 표기 | — |
+| `app/service.ts` | `AppService` — 엔진 + 초대코드(6자·10분·1인 1개) + (데모) `OffsetClock`·가상 친구·`demoAdvance` | 영구 저장 |
+| `app/server.ts` | `createPatinaServer` — POST `/api/<메서드>` + `app/dist/web` 정적 서빙 | https 배포 |
+| `app/client/patina-client.ts` | `PatinaClient`(DOM 없음): 키·관계·확인 숫자·휴대폰 봉인·자동 위장 수정·재확인·백업 | — |
+| `app/client/main.ts` | 화면 (연결/관계/평판/설정 탭). `ui.ts` 도우미(텍스트는 항상 textContent) | 푸시 알림 |
 
 ## 확정 규칙 (사용자 확정, 2026-10)
 1. 관계는 상호 서명으로만 생긴다. 해시+시각만 저장하고, 관계 나이는 위조 불가다.
@@ -67,6 +75,15 @@ Node 22 이상이 필요하다. 개발 의존성은 typescript 5.9.3과 @types/n
 - 계정당 주 10개 신규 관계 상한. 재확인 응답 기한은 30일이다. 1년에 소멸한 지지는 3년 지점에서 자동으로 "유지 안 됨"이 된다.
 - 재확인 결과도 n개씩 묶어서 반영한다(상한 6개월). 집계 폴백은 풀 전체를 한 번에 비운다.
 - 내용이 깨진 봉인은 "안 쓴 것"으로 친다. 비콘 라운드가 늦게 도착하면 그 슬롯만 다음 tick으로 미룬다.
+- `MockTimelock`은 라운드마다 X25519 키쌍(HMAC(master, round))을 만들고 **공개키만으로 봉인**한다(ECIES: X25519+HKDF+AES-GCM). 그래서 휴대폰이 서버 비밀 없이 직접 봉인하고, 서버는 평문을 받지 않는다.
+
+### 앱 결정 (2026-10-29)
+- 연결 = **초대코드**(혼동 글자 뺀 6자, 10분 유효, 사람당 열린 초대 1개) → 상대가 입력하고 서명 → 두 폰에 **확인 숫자**(관계 id 해시의 4자리) → 초대한 쪽이 숫자 확인 후 서명 → 엔진에 관계 생성. 새 코드를 만들면 이전 초대는 수락돼 있어도 닫힌다(= 거절). 수락만 되고 승인이 안 된 채 10분이 지나면 만료.
+- QR 내용은 `…?join=코드` 링크(기본 카메라로 찍어도 앱이 코드가 채워진 채 열림). 앱 안 스캔은 BarcodeDetector + https 일 때만.
+- 상대 이름·내가 쓴 평가 원문·키는 폰에만(localStorage, 데모는 메모리). 서버엔 공개키·해시·시각·봉인 상자.
+- 봉인하기를 누르면 공개 시점이 정해질 때까지(다음 비콘 라운드, 몇 초) 기다렸다가 그 자리에서 봉인한다. 데모 시간 감기 전에도 밀린 봉인을 먼저 처리한다 (안 그러면 봉인 전에 공개 시각이 지나 평가가 사라진다).
+- 앱은 2초마다 새로고침하며, 수정 창이 열린 평가는 한 번 자동 위장 수정한다. 재확인 "아니요"는 아무것도 보내지 않는다(기한이 지나 조용히 소멸).
+- 서버가 재시작돼 관계가 사라졌으면 폰이 감지해서 목록을 비우고 알린다 (서버는 아직 메모리 저장).
 
 ## 작업 규칙
 - `engine.ts`를 고치면 `npm test`와 `npm run mutate`를 둘 다 돌린다. mutate의 원본 조각이 바뀌면 `scripts/mutate.mjs` 목록도 고친다(조각이 정확히 한 번 나와야 한다).
@@ -84,7 +101,7 @@ README "알려진 한계"에 9개를 정리해 뒀다. 핵심은 이렇다.
 - 키 대여
 - 가중치 지문
 - 소규모 시 체인 시점 누출
-- MockTimelock은 의미론만 흉내
+- MockTimelock은 구조만 tlock(라운드 공개키로 봉인), "라운드 전엔 못 연다"는 서버 코드로 강제
 
 ## 남은 일 (v2)
 1. **drand 비콘 어댑터**: 비동기 폴러가 캐시를 채우고 `randomness`는 캐시를 읽는다. 늦은 라운드는 엔진이 이미 처리한다.
@@ -93,4 +110,4 @@ README "알려진 한계"에 9개를 정리해 뒀다. 핵심은 이렇다.
 4. **Semaphore `MembershipVerifier`**와 RLN 기반 익명 관계 상한. 이게 들어가야 "운영자도 모르는" 익명성이 된다.
 5. **경고 임계 암호화**(k명 전엔 운영자도 못 읽게).
 6. **군집 탐지**(시드 기반 신뢰 전파).
-7. **PWA**: 대면 QR 핸드셰이크, 수정 창 자동 위장 수정, `ProfileView` 렌더.
+7. **앱 다음 단계**: 서버 영구 저장(재시작해도 유지), 수정 창·재확인 **푸시 알림**(지금은 앱을 열어야 보임), https 배포(앱 안 QR 스캔), 서비스워커. 화면 흐름은 Playwright 로 수동 E2E 확인했고(레포엔 없음), 넣으려면 `@playwright/test` 를 dev 의존성으로.

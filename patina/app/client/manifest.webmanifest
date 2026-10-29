@@ -1,0 +1,11 @@
+{
+  "name": "Patina",
+  "short_name": "Patina",
+  "description": "오래 써야 생기는 광택처럼, 시간으로만 쌓이는 익명 평판",
+  "lang": "ko",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#edf1ee",
+  "theme_color": "#2a1d15",
+  "icons": [{ "src": "icon.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+}

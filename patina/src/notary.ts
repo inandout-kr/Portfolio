@@ -1,9 +1,8 @@
 // 시간 공증. 블록체인을 쓰는 이유는 딱 하나: "이 관계/등록이 그 시각에 이미 있었다"를
 // 나중에 날짜를 바꿔 끼울 수 없게 하는 것. 체인에는 32바이트 머클루트만 올라간다 (규칙 12).
 
-import { createHash } from "node:crypto";
 import type { Clock } from "./time.js";
-import { hex, sha256, type Bytes } from "./crypto.js";
+import { hex, sha256, sha256Raw, type Bytes } from "./crypto.js";
 
 // ---------------------------------------------------------------- 머클 트리
 
@@ -11,11 +10,11 @@ const LEAF_TAG = Buffer.from([0x00]);
 const NODE_TAG = Buffer.from([0x01]);
 
 export function leafHash(data: Bytes): Buffer {
-  return createHash("sha256").update(LEAF_TAG).update(data).digest();
+  return sha256Raw(LEAF_TAG, data);
 }
 
 function nodeHash(left: Buffer, right: Buffer): Buffer {
-  return createHash("sha256").update(NODE_TAG).update(left).update(right).digest();
+  return sha256Raw(NODE_TAG, left, right);
 }
 
 export interface MerkleStep {
